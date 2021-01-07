@@ -13,24 +13,39 @@ def readwav(file):
     for _ in range(0,nframes):
         fmt = fmt + 'hh'
 
-    # convert data van binary naar integers
+    # Convert data van binary naar integers
     integer_data = struct.unpack(fmt, binary_data)
 
     return([framerate, nchannels, nframes, integer_data])
 
-# Implement filters hier
-def filter(data):
-    res = data
-    return res
+def plot_fourier(nframes, samplerate, data):
 
-def plot_data(data):
-    framerate = data[0]
-    nchannels = data[1]
-    nframes = data[2]
-    data = data[3]
+    # Neem een subset van de data
+    start=10000
+    duration=10000
+    stop=start+duration
+    data = data[start:stop]
+    intervals=len(data)
+
+    # Fourier transformatie
+    sp = abs(2/intervals*np.fft.fft(data))
+    freq = np.fft.fftfreq(intervals,1/samplerate)
+
+    # Alleen de eerste helft van het data is bruikbaar
+    freq=freq[0:int(len(data)/2)]
+    sp=sp[0:int(len(data)/2)]
+
+    plt.plot(freq, sp,'^r')
+    # plt.yscale('log')
+    plt.title('FFT')
+    plt.xlabel('Frequency [Hz]')
+    plt.ylabel('Amplitude F ')
+    plt.show()
+
+def plot_data(nframes, samplerate, data):
 
     # Array voor de x as
-    time = np.arange(0,nframes/framerate,1/framerate)
+    time = np.arange(0,nframes/samplerate,1/samplerate)
 
     # Neem alleen de data van kanaal 1
     data_left = []
@@ -44,10 +59,15 @@ def plot_data(data):
     plt.show()
 
 def main():
-    data = filter(readwav('multiple birds.wav'))
-    # print(data)
-    plot_data(data)
-    # plot_fourier(data)
+    data = readwav('multiple birds.wav')
+
+    samplerate = data[0]
+    nchannels = data[1]
+    nframes = data[2]
+    data = data[3]
+
+    # plot_data(nframes, samplerate, data)
+    plot_fourier(nframes, samplerate, data)
 
 
 if __name__== '__main__':
