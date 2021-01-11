@@ -2,7 +2,6 @@ import wave, struct
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
-from butterworth import butter_filter, butter
 from datetime import datetime
 
 def readwav(file):
@@ -40,18 +39,14 @@ def iir_filter(x,a,b):
         y[i]=(sumbx-sumay)/a[0]
     return(y)   
 
-def plot_fourier(*args):
-    start=64100
-    duration=10000
-    stop=start+duration
+def plot_fourier(start, duration, *args):
+    # Vul de assen
     axes = []
-
-    colors = ['r', 'b', 'g', 'y', 'c', 'm', 'k']
-
     for data in args:
         # Neem een subset van de data
+        audio_data = data[3][start:start+duration]
+
         samplerate = data[0]
-        audio_data = data[3][start:stop]
         intervals=len(audio_data)
 
         # Fourier transformatie
@@ -63,15 +58,15 @@ def plot_fourier(*args):
         sp=sp[0:int(len(audio_data)/2)]
         axes.append([freq, sp, data[4]])
 
+    # The c variabele word gebruikt om een kleur te geven
     c = 0
+    colors = ['r', 'b', 'g', 'y', 'c', 'm', 'k']
     for axis in axes:
         plt.plot(axis[0], axis[1], colors[c], label=axis[2])
         c += 1
-    # plt.yscale('log')
     plt.legend()
-    plt.title('FFT')
     plt.xlabel('Frequency [Hz]')
-    plt.ylabel('Amplitude F ')
+    plt.ylabel('Amplitude F')
     plt.show()
 
 def plot_data(samplerate, nframes, data):
@@ -80,13 +75,12 @@ def plot_data(samplerate, nframes, data):
 
     plt.plot(time, data)
     plt.xlabel('time[s]')
-    plt.ylabel('Amplitude ')
+    plt.ylabel('Amplitude')
     plt.show()
 
-def write_wav(samplerate, data, name):
-    output = name + " filtered.wav"
-    with wave.open(output, "w") as f:
-        f.setnchannels(2)
+def write_wav(samplerate, data):
+    with wave.open('output.wav', "w") as f:
+        f.setnchannels(1)
         f.setsampwidth(2)
         f.setframerate(samplerate)
         for frame in data:
@@ -95,19 +89,21 @@ def write_wav(samplerate, data, name):
 
 def main():
     # Lees wav file
-    data = readwav('single bird.wav')
+    data = readwav('multiple birds.wav')
 
     # Bereken a, b coefficienten
     nyq = 0.5 * data[0]
+    b, a = signal.butter(2, [2400 / nyq, 3200 / nyq], btype='band')
 
-    # Filter data
+    # Filter data in een nieuwe list
     data_filtered = data.copy()
-    b, a = signal.butter(2, [2200 / nyq, 2900 / nyq], btype='band')
     data_filtered[3] = iir_filter(data_filtered[3], a, b)
-    data_filtered[4] = "1"
 
-    plot_fourier(data, data_filtered)
-    write_wav(data_filtered[0], data_filtered[3], data_filtered[4])
+    # Plot fourier
+    plot_fourier(64100, 10000, data, data_filtered)
+
+    # Schrijf naar bestand
+    write_wav(data_filtered[0], data_filtered[3])
 
 if __name__== '__main__':
     main()
