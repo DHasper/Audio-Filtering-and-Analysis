@@ -15,10 +15,11 @@ def readwav(file):
 
     fmt = ''
     for _ in range(0,nframes):
-        fmt = fmt + 'hh'
+        fmt = fmt + 'h' * nchannels
 
-    # Convert data van binary naar integers
     integer_data = struct.unpack(fmt, binary_data)
+    if nchannels == 2:
+        integer_data = integer_data[::2]
 
     return([framerate, nchannels, nframes, integer_data, name]) 
 
@@ -41,7 +42,7 @@ def iir_filter(x,a,b):
 
 def plot_fourier(*args):
     start=64100
-    duration=1000
+    duration=10000
     stop=start+duration
     axes = []
 
@@ -73,22 +74,16 @@ def plot_fourier(*args):
     plt.ylabel('Amplitude F ')
     plt.show()
 
-def plot_data(nframes, samplerate, data):
+def plot_data(samplerate, nframes, data):
     # Array voor de x as
     time = np.arange(0,nframes/samplerate,1/samplerate)
 
-    # Neem alleen de data van kanaal 1
-    data_left = []
-    for i in range(len(data)):
-        if i % 2 == 1:
-            data_left.append(data[i])
-
-    plt.plot(time, data_left)
+    plt.plot(time, data)
     plt.xlabel('time[s]')
     plt.ylabel('Amplitude ')
     plt.show()
 
-def write_wav(samplerate, data, lowcut, highcut, name):
+def write_wav(samplerate, data, name):
     output = name + " filtered.wav"
     with wave.open(output, "w") as f:
         f.setnchannels(2)
@@ -100,33 +95,19 @@ def write_wav(samplerate, data, lowcut, highcut, name):
 
 def main():
     # Lees wav file
-    data = readwav('multiple birds.wav')
+    data = readwav('single bird.wav')
 
     # Bereken a, b coefficienten
     nyq = 0.5 * data[0]
-    b, a = signal.butter(2, [1200 / nyq, 1600 / nyq], btype='band')
 
     # Filter data
     data_filtered = data.copy()
+    b, a = signal.butter(2, [2200 / nyq, 2900 / nyq], btype='band')
     data_filtered[3] = iir_filter(data_filtered[3], a, b)
+    data_filtered[4] = "1"
 
-    # Teken plot
     plot_fourier(data, data_filtered)
-    
-    # plot_data(nframes, samplerate, data)
-    # data_filtered = butter_filter(audio_data, samplerate, 400, 3000, 2)
-    # write_wav(samplerate, data_filtered, 1200, 1600, 'house sparrow')
-    # step = 100
-    # global lowcut, highcut
-    # while step <= 2000:
-    #     for i in range(1000, 4000):
-    #         if i % 100 == 0:
-    #             lowcut = i
-    #             highcut = i + step
-    #             if highcut <= 4000:
-    #                 data_filtered = butter_filter(audio_data, samplerate, lowcut, highcut, 5)
-    #                 write_wav(samplerate, data_filtered)
-    #     step = step + 100
+    write_wav(data_filtered[0], data_filtered[3], data_filtered[4])
 
 if __name__== '__main__':
     main()
